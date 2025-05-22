@@ -1,0 +1,40 @@
+###----- run in google collab, if want to use locally change the data loading commands -----###
+###----- data files needs to be present in the drive and need to give permission to collab to be able to run the code ----###
+
+#--- importing libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+from google.colab import drive
+drive.mount('/content/gdrive')
+
+#--- Loading all the CSV files
+df_pc = pd.read_csv('/content/gdrive/My Drive/rmse_r2_results_principal_components.csv')
+df_all = pd.read_csv('/content/gdrive/My Drive/rmse_r2_results_all_features.csv')
+df_all_all = pd.read_csv('/content/gdrive/My Drive/rmse_r2_results_all_all_features.csv')
+
+#--- Extracting R² values and target profiles from the datasets
+target_profiles_pc = df_pc['Target_Profile']
+r2_values_pc = df_pc['R²']
+
+target_profiles_all = df_all['Target_Profile']
+r2_values_all = df_all['R²']
+
+target_profiles_all_all = df_all_all['Target_Profile']
+r2_values_all_all = df_all_all['R²']
+
+#--- Ploting R² values with different colors
+plt.figure(figsize=(12, 6))
+plt.plot(target_profiles_pc, r2_values_pc, label='Principal Features', color='blue', marker='o')
+plt.plot(target_profiles_all, r2_values_all, label='All Features w/o PF', color='red', marker='s')
+plt.plot(target_profiles_all_all, r2_values_all_all, label='All Features', color='green', marker='o')
+
+#--- Formatting the graph
+plt.xticks(rotation=90)  # Rotate x-axis labels for better visibility
+plt.xlabel("Target Profiles")
+plt.ylabel("R² Values")
+plt.title("Comparison of R² Values: Principal Features vs. All Features")
+plt.legend()
+plt.grid(True)
+
+#--- Displaying the plot
+plt.show()
