@@ -1,0 +1,181 @@
+###----- run in google collab, if want to use locally change the data loading commands -----###
+###----- data file needs to be present in the drive and need to give permission to collab to be able to run the code ----###
+
+#---importing libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from xgboost import DMatrix, train
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+from google.colab import drive
+drive.mount('/content/gdrive')
+
+#---Loading data file
+data = pd.read_csv('/content/gdrive/My Drive/filtered_genes_thousand.csv',low_memory=False)
+#---Filtering on the bases of G_Value(WRE)
+data = data[data['G_value'] > 2]
+
+#--- Func to average out the replicates of each profile
+def average_quadruplets(df, column_prefix):
+    return df.filter(like=column_prefix).mean(axis=1)
+
+
+
+#--- Function to calculate the average of quadruplets based on prefix matching
+def average_quadruplets(data, prefix):
+    #--- Filtering columns that start with the given prefix
+    matching_cols = [col for col in data.columns if col.startswith(prefix)]
+
+    #--- Calculating the row-wise mean of these columns
+    if len(matching_cols) > 0:
+        return data[matching_cols].mean(axis=1)
+    else:
+        raise ValueError(f"No matching columns found for prefix: {prefix}")
+
+
+#--- Adding columns with averages for each prefix
+data['ATE_avg'] = average_quadruplets(data, "X3.ATE")
+data['FOAE_avg'] = average_quadruplets(data, "X5.FOAE")
+data['FUE_avg'] = average_quadruplets(data, "X5.FUE")
+data['MPE_avg'] = average_quadruplets(data, "X6.MPE")
+data['ABUE_avg'] = average_quadruplets(data, "ABUE")
+data['AFE_avg'] = average_quadruplets(data, "AFE")
+data['ATPE_avg'] = average_quadruplets(data, "ATPE")
+data['AZTE_avg'] = average_quadruplets(data, "AZTE")
+data['B_Cl_AlaE_avg'] = average_quadruplets(data, "B.Cl.AlaE")
+data['BSDE_avg'] = average_quadruplets(data, "BSDE")
+data['BZE_avg'] = average_quadruplets(data, "BZE")
+data['CBPCE_avg'] = average_quadruplets(data, "CBPCE")
+data['CCCPE_avg'] = average_quadruplets(data, "CCCPE")
+data['CMZE_avg'] = average_quadruplets(data, "CMZE")
+data['CPE_avg'] = average_quadruplets(data, "CPE")
+data['DCSE_avg'] = average_quadruplets(data, "DCSE")
+data['DVALE_avg'] = average_quadruplets(data, "DVALE")
+data['EDTAE_avg'] = average_quadruplets(data, "EDTAE")
+data['EME_avg'] = average_quadruplets(data, "EME")
+data['FOSE_avg'] = average_quadruplets(data, "FOSE")
+data['FTDE_avg'] = average_quadruplets(data, "FTDE")
+data['GAHE_avg'] = average_quadruplets(data, "GAHE")
+data['H2O2E_avg'] = average_quadruplets(data, "H2O2E")
+data['HSEE_avg'] = average_quadruplets(data, "HSEE")
+data['KME_avg'] = average_quadruplets(data, "KME")
+data['KTeE_avg'] = average_quadruplets(data, "KTeE")
+data['LVALE_avg'] = average_quadruplets(data, "LVALE")
+data['MECE_avg'] = average_quadruplets(data, "MECE")
+data['MMCE_avg'] = average_quadruplets(data, "MMCE")
+data['NFLXE_avg'] = average_quadruplets(data, "NFLXE")
+data['NiClE_avg'] = average_quadruplets(data, "NiClE")
+data['NITE_avg'] = average_quadruplets(data, "NITE")
+data['NMNOE_avg'] = average_quadruplets(data, "NMNOE")
+data['NQOE_avg'] = average_quadruplets(data, "NQOE")
+data['NVAE_avg'] = average_quadruplets(data, "NVAE")
+data['PHENE_avg'] = average_quadruplets(data, "PHENE")
+data['PLME_avg'] = average_quadruplets(data, "PLME")
+data['PMZE_avg'] = average_quadruplets(data, "PMZE")
+data['PSE_avg'] = average_quadruplets(data, "PSE")
+data['PURE_avg'] = average_quadruplets(data, "PURE")
+data['RFPE_avg'] = average_quadruplets(data, "RFPE")
+data['SDCE_avg'] = average_quadruplets(data, "SDCE")
+data['SHXE_avg'] = average_quadruplets(data, "SHXE")
+data['SSE_avg'] = average_quadruplets(data, "SSE")
+data['SXZE_avg'] = average_quadruplets(data, "SXZE")
+data['TETE_avg'] = average_quadruplets(data, "TETE")
+data['VCME_avg'] = average_quadruplets(data, "VCME")
+data['M9E_avg'] = average_quadruplets(data, "M9E")
+data['MDS42_avg'] = average_quadruplets(data, "MDS42.n")
+
+#--- Selecting only the avg columns
+data = data.filter(like="_avg")
+
+#--- Defining the Features
+principal_components = ['ATE_avg', 'FOAE_avg', 'FUE_avg', 'MPE_avg', 'ABUE_avg', 'AFE_avg', 'ATPE_avg', 'AZTE_avg', 'B_Cl_AlaE_avg', 'BSDE_avg', 'BZE_avg', 'CBPCE_avg', 'CCCPE_avg', 'CMZE_avg', 'CPE_avg', 'DCSE_avg', 'DVALE_avg', 'EDTAE_avg', 'EME_avg', 'FOSE_avg', 'FTDE_avg', 'GAHE_avg', 'H2O2E_avg', 'HSEE_avg', 'KME_avg', 'KTeE_avg', 'LVALE_avg', 'MECE_avg', 'MMCE_avg', 'NFLXE_avg', 'NiClE_avg', 'NITE_avg', 'NMNOE_avg', 'NQOE_avg', 'NVAE_avg', 'PHENE_avg', 'PLME_avg', 'PMZE_avg', 'PSE_avg', 'PURE_avg', 'RFPE_avg', 'SDCE_avg', 'SHXE_avg', 'SSE_avg', 'SXZE_avg', 'TETE_avg', 'VCME_avg', 'M9E_avg', 'MDS42_avg']
+
+#--- Defining Principal features to remove
+profiles_to_remove = ['GAHE_avg', 'NMNOE_avg', 'NFLXE_avg', 'TETE_avg', 'MMCE_avg', 'KME_avg', 'SXZE_avg']
+
+#--- Removing specified principal features from feature list
+principal_components = [col for col in principal_components if col not in profiles_to_remove]
+
+
+#--- Extracting predictor features
+X = data[principal_components]
+
+#--- Lists to store results
+rmse_list = []
+r2_list = []
+target_profiles = []
+
+#--- Iterating through each target column
+for target in data.columns:
+    if target in principal_components:  #--- Excluding principal components
+        X = data[principal_components].drop(columns=[target])  #--- Removing target from features
+        y = data[target].dropna()  #--- Removing NaN values
+        X_target = X.loc[y.index]  #--- Matching indices with valid target values
+
+        #--- Ensuring data is numeric
+        X_target = X_target.apply(pd.to_numeric, errors='coerce')
+        y = pd.to_numeric(y, errors='coerce')
+
+        if X_target.isnull().values.any() or y.isnull().values.any():
+            continue  #--- Skipping if NaN values are present after conversion
+
+        #--- Train-test split
+        X_train, X_test, y_train, y_test = train_test_split(X_target, y, test_size=0.3, random_state=123)
+
+        #--- Converting to DMatrix format required for XGBoost
+        train_matrix = DMatrix(data=X_train, label=y_train)
+        test_matrix = DMatrix(data=X_test, label=y_test)
+
+        #--- Defining XGBoost parameters
+        params = {
+            "objective": "reg:squarederror",
+            "eta": 0.01,
+            "max_depth": 8,
+            "eval_metric": "rmse"
+        }
+
+        #--- Training model
+        model = train(params=params, dtrain=train_matrix, num_boost_round=500)
+
+        #--- Making Predictions
+        predictions = model.predict(test_matrix)
+
+        #--- Calculating RMSE & R²
+        rmse = np.sqrt(mean_squared_error(y_test, predictions))
+        ss_total = np.sum((y_test - np.mean(y_test))**2)
+        ss_residual = np.sum((y_test - predictions)**2)
+        r2 = 1 - (ss_residual / ss_total)
+
+        #--- Storing results
+        rmse_list.append(rmse)
+        r2_list.append(r2)
+        target_profiles.append(target)
+
+	#--- printing the RMSE and R² for each target profile while predicting
+        print(f"Predicted {target} -> RMSE: {rmse}, R²: {r2}")
+
+#--- Creating DataFrame to store results
+results_df = pd.DataFrame({"Target_Profile": target_profiles, "RMSE": rmse_list, "R²": r2_list})
+
+#--- Ploting RMSE values
+plt.figure(figsize=(10, 5))
+sns.barplot(x="Target_Profile", y="RMSE", data=results_df, color="blue", alpha=0.7)
+plt.xticks(rotation=90)
+plt.title("RMSE Values Across Target Profiles")
+plt.xlabel("Target Profile")
+plt.ylabel("RMSE")
+plt.show()
+
+#--- Ploting R² values
+plt.figure(figsize=(10, 5))
+sns.barplot(x="Target_Profile", y="R²", data=results_df, color="green", alpha=0.7)
+plt.xticks(rotation=90)
+plt.title("R² Values Across Target Profiles")
+plt.xlabel("Target Profile")
+plt.ylabel("R²")
+plt.show()
+
+#--- Saving the results into a csv file into drive
+results_df.to_csv("/content/gdrive/My Drive/rmse_r2_results_all_features.csv", index=False)
